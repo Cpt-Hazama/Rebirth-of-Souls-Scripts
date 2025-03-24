@@ -27,6 +27,8 @@ def decompress(path):
         return None
 
 for filename in os.listdir(fileDir):
+    if filename.endswith(".py") or filename.endswith(".md") or filename.endswith(".txt") or filename.endswith(".md"):
+        continue
     path = os.path.join(fileDir, filename)
     output = decompress(path)
 
