@@ -29,11 +29,17 @@ def decompress(path):
 for filename in os.listdir(fileDir):
     path = os.path.join(fileDir, filename)
     output = decompress(path)
-    
+
     if output:
-        outputDir = os.path.join(fileDir, os.path.splitext(filename)[0] + "_decompressed.bin")
+        ddsIndex = output.find(b'DDS ')
+        if ddsIndex != -1:
+            output = output[ddsIndex:]
+            outputDir = os.path.join(fileDir, os.path.splitext(filename)[0] + ".dds")
+        else:
+            outputDir = os.path.join(fileDir, filename + "_decompressed" + os.path.splitext(filename)[1])
+
         with open(outputDir, "wb") as f:
             f.write(output)
-        print(f"Decompressed data saved to {outputDir}")
+        print(f"Output saved to {outputDir}")
     else:
         print(f"Skipping {filename}, decompression failed.")
