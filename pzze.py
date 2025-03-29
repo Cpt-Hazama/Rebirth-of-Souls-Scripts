@@ -77,9 +77,9 @@ if __name__ == "__main__":
         output = decompress(path)
         if output:
             baseName = os.path.splitext(filename)[0]
-            outputDir = os.path.join(outputDir, filename)
-            os.makedirs(outputDir, exist_ok=True)
-            isDDS = extractDDS(output, outputDir, baseName)
+            fileOutputDir = os.path.join(outputDir, baseName)
+            os.makedirs(fileOutputDir, exist_ok=True)
+            isDDS = extractDDS(output, fileOutputDir, baseName)
 
             if not isDDS:
                 outputPath = os.path.join(fileDir, baseName + "_decompressed" + os.path.splitext(filename)[1])
