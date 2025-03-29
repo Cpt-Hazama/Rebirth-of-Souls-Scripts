@@ -37,22 +37,25 @@ def getOffsets(chunk):
     offsets.append(len(chunk))
     return offsets
 
-def findStrings(chunk, minLength=6):
-    return re.findall(rb'[ -~]{%d,}' % minLength, chunk)
-
 def extractDDS(chunk, outputDir, baseName):
     os.makedirs(outputDir, exist_ok=True)
     offsets = getOffsets(chunk)
     count = len(offsets) - 1
-    stringData = findStrings(chunk, minLength=8)
-    entries = [s.decode('ascii', errors='ignore') for s in stringData if b"char" in s or b"2p" in s]
-    outputNames = [name.strip(",.") for name in entries if "char_" in name and len(name) <= 32]
+    stringData = re.findall(rb'[ -~]{6,}', chunk)
+    entries = [s.decode('ascii', errors='ignore').strip(",. ") for s in stringData]
+    testNames = [s for s in entries if len(s) <= 64 and " " not in s and re.match(r"^[\w\-\.]+$", s)]
+    seen = set()
+    outputNames = []
+    for name in testNames:
+        if name not in seen:
+            seen.add(name)
+            outputNames.append(name)
 
     for i in range(count):
         start = offsets[i]
         end = offsets[i + 1]
         imgData = chunk[start:end]
-        name = outputNames[i] if i < len(outputNames) else f"{baseName}_{i:02}"
+        name = re.sub(r'[<>:"/\\|?*]', '_', outputNames[i] if i < len(outputNames) else f"{baseName}_{i:02}")
         path = os.path.join(outputDir, f"{name}.dds")
         with open(path, "wb") as f:
             f.write(imgData)
