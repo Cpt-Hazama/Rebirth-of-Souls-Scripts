@@ -8,6 +8,10 @@ def decompress(path):
         with open(path, "rb") as f:
             magic = f.read(4)
             if magic != b'PZZE':
+                print(f"{path} is not compressed, attempting raw extraction.")
+                f.seek(0)
+                return f.read()
+            if magic != b'PZZE':
                 print(f"{path} is not a valid PZZE file.")
                 return None
 
@@ -69,7 +73,7 @@ if __name__ == "__main__":
     os.makedirs(outputDir, exist_ok=True)
 
     for filename in os.listdir(fileDir):
-        if filename.endswith((".py", ".md", ".txt")) or filename == "output":
+        if filename.endswith((".py", ".md", ".txt", ".gitattributes", ".git")) or filename == "output":
             continue
 
         path = os.path.join(fileDir, filename)
