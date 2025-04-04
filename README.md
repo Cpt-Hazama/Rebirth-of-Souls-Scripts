@@ -1,5 +1,8 @@
 # Contents
 
+## .CAT DDS Editor [WIP]
+Used to inject DDS files into .CAT containers (example: replacing character icons or HUD assets)
+
 ## PZZE Decompression
 Used to decompress files with PZZE compression (can verify with a hex editor by looking for 'PZZE' in the header) and also automatically extracts DDS textures
 
