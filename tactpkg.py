@@ -109,27 +109,32 @@ def extractTMO(buffer, output, tact):
 def selection():
     root = tk.Tk()
     root.withdraw()
-    path = filedialog.askopenfilename(title="Select a .tactpkg File or Cancel to Select Folder", filetypes=[("TACTPKG files", "*.tactpkg")])
-    if not path:
-        path = filedialog.askdirectory(title="Select Folder Containing .tactpkg Files")
-    return path
+
+    file_paths = filedialog.askopenfilenames(
+        title="Select one or more .tactpkg files (or cancel to choose a folder)",
+        filetypes=[("TACTPKG files", "*.tactpkg")]
+    )
+
+    if file_paths:
+        return list(file_paths)
+
+    folder = filedialog.askdirectory(title="Select Folder Containing .tactpkg Files")
+    if folder:
+        return [os.path.join(folder, f) for f in os.listdir(folder) if f.endswith('.tactpkg')]
+
+    return []
 
 def main():
-    path = selection()
-    if not path:
-        print("[!] No path selected!")
-        return
-
-    paths = []
-    if os.path.isdir(path):
-        paths = [os.path.join(path, f) for f in os.listdir(path) if f.endswith('.tactpkg')]
-    elif path.endswith(".tactpkg"):
-        paths = [path]
-    else:
-        print("[!] Invalid file or folder!")
+    paths = selection()
+    if not paths:
+        print("[!] No valid files selected.")
         return
 
     for filePath in paths:
+        if not os.path.isfile(filePath) or not filePath.endswith(".tactpkg"):
+            print(f"[!] Skipped invalid file: {filePath}")
+            continue
+
         tact = Path(filePath).stem
         buffer = decompress(filePath)
         if buffer:
