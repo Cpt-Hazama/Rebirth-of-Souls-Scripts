@@ -9,5 +9,5 @@ Used to decompress files with PZZE compression (can verify with a hex editor by 
 ## Audio Name Patch
 Used to repair the names of extracted WAV files to the original names prior to being compiled in Wwise. You can extract the sounds from the .WEM and .BNK files using foobar2000 with the vgmstream plugin
 
-## TACTPKG Label Export
-Simple export tool that extracts animation names from TACTPKG files. Mostly personal use on my end to see what all is in the animation files, there's some interesting unused things in here (for example, running animations that every character has but got removed pre-release, which can only be seen in early game trailers)
+## TACTPKG Animation Extractor
+Used to select individual or whole folders of TACTPKG files to extract TMO1 animations. Currently DOESN'T get the names, just names them in order of extraction.
