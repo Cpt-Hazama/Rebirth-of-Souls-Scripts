@@ -5,7 +5,6 @@ import tkinter as tk
 import zlib
 from tkinter import filedialog
 from pathlib import Path
-from typing import Optional
 
 def decompress(path):
     with open(path, "rb") as f:
@@ -27,96 +26,78 @@ def decompress(path):
             print(f"[!] Failed to decompress {path}: {e}")
             return None
 
-def grabNames(buffer, count): # Nasty and unreliable bwahaha
-    # raw = re.split(rb'\x00+', buffer[0x10:0x8100])
-    decoded = []
-    # seen = set()
-    # for s in raw:
-    #     try:
-    #         if len(s) < 6:
-    #             continue
-    #         text = s.decode('ascii')
-    #         if (
-    #             '_' in text
-    #             and text[0].isalnum()
-    #             and len(text) >= 8
-    #             and text not in seen
-    #         ):
-    #             decoded.append(text)
-    #             seen.add(text)
-    #     except:
-    #         continue
-    return decoded[:count]
+def grabActionData(buffer):
+    matches = re.finditer(rb'"kind"\s*:\s*"act_data"\s*,\s*"([^"]+)"\s*:\s*\{.*?"tmo_name"\s*:\s*"([^"]+)"', buffer, re.DOTALL)
+    data = []
+    for m in matches:
+        logic_name = m.group(1).decode("utf-8", errors="ignore")
+        tmo_name = m.group(2).decode("utf-8", errors="ignore")
+        start = max(0, m.start() - 20)
+        end = m.end() + 300
+        blob = buffer[start:end].decode("utf-8", errors="ignore")
+        data.append((tmo_name.strip(), logic_name.strip(), blob.strip()))
+    return data
 
-def parseTMO(chunk):
-    try:
-        if chunk[:4] != b'tmo1':
-            return None
-        keyframeCount = struct.unpack_from('<I', chunk, 0x34)[0]
-        frameCount = struct.unpack_from('<I', chunk, 0x3C)[0]
-        boneCount = struct.unpack_from('<I', chunk, 0x40)[0]
-        if frameCount > 10000 or boneCount > 500 or keyframeCount > 100000:
-            return None
-        return {
-            "frames": frameCount,
-            "bones": boneCount,
-            "keyframes": keyframeCount
-        }
-    except Exception:
-        return None
+def grabNames(buffer):
+    matches = re.findall(rb'"tmo_name"\s*:\s*"([^"]+)"', buffer)
+    return [m.decode("utf-8", errors="ignore").strip() for m in matches]
 
 def extractTMO(buffer, output, tact):
     if not os.path.exists(output):
         os.makedirs(output)
 
-    indexes = [m.start() for m in re.finditer(b'tmo1', buffer)]
-    print(f"[+] {tact}: Found {len(indexes)} .tmo1 entries")
+    tmoIndex = [m.start() for m in re.finditer(b'tmo1', buffer)]
+    print(f"[+] {tact}: Found {len(tmoIndex)} .tmo1 entries")
 
-    tmoNames = grabNames(buffer, len(indexes))
+    tmo_names = grabNames(buffer)
+    actionData = grabActionData(buffer)
+    actionMap = {k: blob for k, _, blob in actionData}
     usedNames = set()
     reportLines = []
 
-    for i, start in enumerate(indexes):
-        end = indexes[i + 1] if i + 1 < len(indexes) else len(buffer)
+    for i, start in enumerate(tmoIndex):
+        end = tmoIndex[i + 1] if i + 1 < len(tmoIndex) else len(buffer)
         chunk = buffer[start:end]
-        info = parseTMO(chunk)
 
-        if i < len(tmoNames):
-            name = tmoNames[i].strip()
-            animName = re.sub(r'[^a-zA-Z0-9._-]', '_', name)
+        if i < len(tmo_names):
+            animName = tmo_names[i]
+            # animName = tmo_names[i-1]
+            if not animName:
+                animName = f"anim_{i:03}"
         else:
             animName = f"anim_{i:03}"
 
+        baseName = animName
         count = 1
         while animName in usedNames:
-            animName = f"{animName}_{count}"
+            animName = f"{baseName}_{count}"
             count += 1
 
         usedNames.add(animName)
-        with open(os.path.join(output, f"{animName}.tmo"), "wb") as out:
+        outputPath = os.path.join(output, f"{animName}.tmo")
+        with open(outputPath, "wb") as out:
             out.write(chunk)
-
         print(f"[+] Extracted: {animName}.tmo")
 
-        if info:
-            reportLines.append(f"{animName}.tmo, {info['frames']} frames, {info['bones']} bones, {info['keyframes']} keyframes")
+        jsonOutputData = actionMap.get(baseName, "[No JSON match found]")
+        reportLines.append(f"{animName}.tmo")
+        reportLines.append(jsonOutputData)
+        reportLines.append("")
 
-    with open(os.path.join(output, "__animreport.txt"), "w") as report:
-        report.write("FileName, FrameCount, BoneCount, KeyframeCount\n")
-        for line in reportLines:
-            report.write(line + "\n")
+    with open(os.path.join(output, "__animreport.txt"), "w", encoding="utf-8") as report:
+        report.write("\n".join(reportLines))
 
 def selection():
     root = tk.Tk()
     root.withdraw()
 
-    file_paths = filedialog.askopenfilenames(
+    filePaths = filedialog.askopenfilenames(
         title="Select one or more .tactpkg files (or cancel to choose a folder)",
         filetypes=[("TACTPKG files", "*.tactpkg")]
     )
 
-    if file_paths:
-        return list(file_paths)
+    if filePaths:
+        return list(filePaths)
 
     folder = filedialog.askdirectory(title="Select Folder Containing .tactpkg Files")
     if folder:
