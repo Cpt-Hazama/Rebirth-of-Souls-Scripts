@@ -36,7 +36,8 @@ def main():
             mappingTbl[wemID] = wemName + ".wav"
 
     for filename in os.listdir(wavFolder):
-        match = re.search(r"\(?(\d+)\)?\.wav$", filename)
+        # match = re.search(r"\(?(\d+)\)?\.wav$", filename)
+        match = re.search(r"\(?(\d+)\)?\.(wem|wav|ogg)$", filename)
         if match:
             wemID = match.group(1)
             if wemID in mappingTbl:
